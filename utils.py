@@ -2,14 +2,6 @@
 import matplotlib.pyplot as plt
 import os
 
-def plot_losses(train_losses, test_losses, loss_type):
-    plt.plot(train_losses, label=f'Training {loss_type} Loss')
-    plt.plot(test_losses, label=f'Test {loss_type} Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title(f'Training and Test {loss_type} Loss')
-    plt.legend()
-    plt.show()
 
 
 def plot_images(original, noisy, generated, num_images=5):

@@ -2,8 +2,8 @@ import tensorflow as tf
 
 
 def discriminator_loss(real, generated):
-    real_loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)(tf.ones_like(real), real)
-    generated_loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)(tf.zeros_like(generated), generated)
+    real_loss = tf.keras.losses.BinaryCrossentropy(from_logits=True, label_smoothing=0.1)(tf.ones_like(real), real)
+    generated_loss = tf.keras.losses.BinaryCrossentropy(from_logits=True, label_smoothing=0.1)(tf.zeros_like(generated), generated)
     return real_loss + generated_loss
 
 def generator_loss(generated):

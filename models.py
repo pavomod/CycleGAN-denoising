@@ -30,7 +30,7 @@ def make_generator_model():
     x = layers.ReLU()(x)
 
     # ResNet blocks
-    num_resnet_blocks = 6
+    num_resnet_blocks = 9  # Increased from 6 to 9
     for _ in range(num_resnet_blocks):
         x = resnet_block(x, 256)
 
@@ -48,12 +48,13 @@ def make_generator_model():
 
     return Model(inputs=inputs, outputs=x)
 
+
 def make_discriminator_model():
     model = tf.keras.Sequential([
-        layers.Conv2D(64, (3, 3), strides=(2, 2), padding='same', input_shape=(28, 28, 1)),
-        layers.LeakyReLU(),
-        layers.Conv2D(128, (3, 3), strides=(2, 2), padding='same'),
-        layers.LeakyReLU(),
+        layers.Conv2D(32, (4, 4), strides=(2, 2), padding='same', input_shape=(28, 28, 1)),
+        layers.LeakyReLU(alpha=0.2),
+        layers.Conv2D(64, (4, 4), strides=(2, 2), padding='same'),
+        layers.LeakyReLU(alpha=0.2),
         layers.Flatten(),
         layers.Dense(1)
     ])
@@ -171,3 +172,5 @@ class CycleGAN(Model):
             "D_X_loss": disc_x_loss,
             "D_Y_loss": disc_y_loss
         }
+    
+    
