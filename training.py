@@ -1,32 +1,23 @@
 import tensorflow as tf
 from models import make_generator_model, make_discriminator_model, CycleGAN
-from data_loader import load_mnist, add_salt_pepper_noise
+from data_loader import load_mnist, add_salt_pepper_noise,save_models,load_models
 from utils import *
 import numpy as np
 import tensorflow_addons as tfa
 from tqdm import tqdm
 from loss import generator_loss, discriminator_loss, cycle_consistency_loss
 
-EPOCHS = 20
-BATCH_SIZE = 1
+EPOCHS = 10
+BATCH_SIZE = 64
+TRAIN_IMAGES_END = 30000
+VAL_IMAGES_END= 31000
+TEST_IMAGES_END = 32000
 TRAIN_IMAGES_START = 0
-TRAIN_IMAGES_END = 1000
 VAL_IMAGES_START = TRAIN_IMAGES_END
-VAL_IMAGES_END= 1250
 TEST_IMAGES_START = VAL_IMAGES_END
-TEST_IMAGES_END = 1500
 
 
-def save_models(generator_G, generator_F, discriminator_X, discriminator_Y, epoch):
-    save_dir = f'models/epoch_{epoch+1}'
-    os.makedirs(save_dir, exist_ok=True)
-    generator_G.save(os.path.join(save_dir, 'generator_G.h5'))
-    generator_F.save(os.path.join(save_dir, 'generator_F.h5'))
-    discriminator_X.save(os.path.join(save_dir, 'discriminator_X.h5'))
-    discriminator_Y.save(os.path.join(save_dir, 'discriminator_Y.h5'))
-    print(f"Models saved to {save_dir}\n\n")
-
-def test_model(model, test_dataset, num_images=5, plot=True):
+def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
     test_losses = []
     for image_batch, noisy_batch in test_dataset:
         generated_images = model.generator_G(noisy_batch, training=False)
@@ -36,13 +27,12 @@ def test_model(model, test_dataset, num_images=5, plot=True):
         data = (image_batch, noisy_batch)
         test_loss = model.test_step(data)
         test_losses.append(test_loss)
-
+    save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images, epoch, "validaiton")
     avg_G_loss = np.mean([loss['G_loss'] for loss in test_losses])
     avg_F_loss = np.mean([loss['F_loss'] for loss in test_losses])
     avg_DX_loss = np.mean([loss['D_X_loss'] for loss in test_losses])
     avg_DY_loss = np.mean([loss['D_Y_loss'] for loss in test_losses])
 
-    print("===================== LOSS  =====================\n")
     print("Average Generator G Loss:", avg_G_loss)
     print("Average Generator F Loss:", avg_F_loss)
     print("Average Discriminator X Loss:", avg_DX_loss)
@@ -56,17 +46,30 @@ def test_model(model, test_dataset, num_images=5, plot=True):
     }
 
 
-def run():
+def run(resume_train=False,start_epoch=0):
     physical_devices = tf.config.list_physical_devices('GPU')
     print("GPUs:", physical_devices)
     device = '/gpu:0' if tf.config.list_physical_devices('GPU') else '/cpu:0'
     print('Using device:', device)
 
     with tf.device(device):
-        gen_G = make_generator_model()
-        gen_F = make_generator_model()
-        disc_X = make_discriminator_model()
-        disc_Y = make_discriminator_model()
+        if resume_train:
+            try:
+                gen_G, gen_F, disc_X, disc_Y = load_models(start_epoch)
+                print(f"===================== Resuming training from epoch {start_epoch+1} ===================== ")
+            except Exception as e:
+                print(f"Error loading models: {e}")
+                print(" ===================== Starting training from scratch. ===================== ")
+                start_epoch = 0
+                gen_G = make_generator_model()
+                gen_F = make_generator_model()
+                disc_X = make_discriminator_model()
+                disc_Y = make_discriminator_model()
+        else:
+            gen_G = make_generator_model()
+            gen_F = make_generator_model()
+            disc_X = make_discriminator_model()
+            disc_Y = make_discriminator_model()
 
         g_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
         d_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5)
@@ -102,7 +105,7 @@ def run():
         val_dy_losses = []
 
         print("===================== Training =====================\n")
-        for epoch in range(EPOCHS):  
+        for epoch in range(start_epoch,EPOCHS):  
             print(f"===================== Epoch {epoch+1} =====================\n")
             for batch, (image_batch, noisy_batch) in enumerate(tqdm(train_dataset, desc=f"Epoch {epoch+1}")):
                 data = (image_batch, noisy_batch)
@@ -120,8 +123,8 @@ def run():
             train_f_losses.append(train_loss["F_loss"].numpy())
             train_dx_losses.append(train_loss["D_X_loss"].numpy())
             train_dy_losses.append(train_loss["D_Y_loss"].numpy())
-            print("===================== Validation  =====================\n")
-            avg_val_loss = test_model(cycle_gan_model, val_dataset, num_images=5, plot=False)
+            print("===================== Validation  LOSS =====================\n")
+            avg_val_loss = test_model(cycle_gan_model, val_dataset, num_images=5, plot=False,epoch=str(epoch))
             val_g_losses.append(avg_val_loss["avg_G_loss"])
             val_f_losses.append(avg_val_loss["avg_F_loss"])
             val_dx_losses.append(avg_val_loss["avg_DX_loss"])
@@ -131,8 +134,8 @@ def run():
             save_models(cycle_gan_model.generator_G, cycle_gan_model.generator_F, cycle_gan_model.discriminator_X, cycle_gan_model.discriminator_Y, epoch)
             print(f"===================== Epoch {epoch+1} complete =====================\n\n")
 
-        print("\n\n===================== Test  =====================\n")
-        test_model(cycle_gan_model, test_dataset, num_images=5, plot=False)
+        print("\n\n===================== Test LOSS =====================\n")
+        test_model(cycle_gan_model, test_dataset, num_images=5, plot=False,epoch="final_test")
         print("\n\n===================== Training complete =====================\n\n")
     
 
