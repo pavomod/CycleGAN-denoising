@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import os
 
 
-
 def plot_images(original, noisy, generated, num_images=5):
     num_images = min(num_images, original.shape[0])
     

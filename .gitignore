@@ -1,4 +1,5 @@
-output_images
+train_images
 models
+test_images
 Consegna.png
 __pycache__

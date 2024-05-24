@@ -3,23 +3,16 @@ from models import make_generator_model, make_discriminator_model, CycleGAN
 from data_loader import load_mnist, add_salt_pepper_noise,save_models,load_models
 from utils import *
 import numpy as np
-import tensorflow_addons as tfa
 from tqdm import tqdm
 from loss import generator_loss, discriminator_loss, cycle_consistency_loss
+from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES_END, VAL_IMAGES_END, TEST_IMAGES_END, TRAIN_IMAGES_START, VAL_IMAGES_START, TEST_IMAGES_START
 
-EPOCHS = 10
-BATCH_SIZE = 64
-TRAIN_IMAGES_END = 30000
-VAL_IMAGES_END= 31000
-TEST_IMAGES_END = 32000
-TRAIN_IMAGES_START = 0
-VAL_IMAGES_START = TRAIN_IMAGES_END
-TEST_IMAGES_START = VAL_IMAGES_END
 
 
 def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
     test_losses = []
-    for image_batch, noisy_batch in test_dataset:
+    #use tqdm to show progress bar
+    for batch, (image_batch, noisy_batch) in enumerate(tqdm(test_dataset, desc=f"Epoch {epoch}")):
         generated_images = model.generator_G(noisy_batch, training=False)
         generated_images = generated_images.numpy()
         if plot:
@@ -27,7 +20,7 @@ def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
         data = (image_batch, noisy_batch)
         test_loss = model.test_step(data)
         test_losses.append(test_loss)
-    save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images, epoch, "validaiton")
+    save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images, epoch, "validaiton",output_dir="test_images")
     avg_G_loss = np.mean([loss['G_loss'] for loss in test_losses])
     avg_F_loss = np.mean([loss['F_loss'] for loss in test_losses])
     avg_DX_loss = np.mean([loss['D_X_loss'] for loss in test_losses])
@@ -117,7 +110,7 @@ def run(resume_train=False,start_epoch=0):
 
                 if batch % 100 == 0:  # Save images every 100 batches
                     generated_images = cycle_gan_model.generator_G(noisy_batch, training=False)
-                    save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images.numpy(), epoch, batch)
+                    save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images.numpy(), epoch, batch,output_dir="train_images")
             
             train_g_losses.append(train_loss["G_loss"].numpy())
             train_f_losses.append(train_loss["F_loss"].numpy())

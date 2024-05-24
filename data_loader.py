@@ -2,9 +2,7 @@ import tensorflow as tf
 import numpy as np
 import os
 from tensorflow.keras.models import load_model # type: ignore
-
-SALT=0.15
-PEPPER=0.15
+from params import SALT, PEPPER
 
 def load_mnist(train_start=0, train_end=1000, val_start=1001, val_end=1100, test_start=1101, test_end=1200):
     (x, _), (_, _) = tf.keras.datasets.mnist.load_data()
