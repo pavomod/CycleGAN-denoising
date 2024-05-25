@@ -41,7 +41,7 @@ def save_models(generator_G, generator_F, discriminator_X, discriminator_Y, epoc
     discriminator_Y.save(os.path.join(save_dir, 'discriminator_Y.h5'))
     print(f"Models saved to {save_dir}\n\n")
 
-def load_models(epoch):
+def load_models(epoch=1):
     load_dir = f'models/epoch_{epoch}'
     generator_G = load_model(os.path.join(load_dir, 'generator_G.h5'))
     generator_F = load_model(os.path.join(load_dir, 'generator_F.h5'))

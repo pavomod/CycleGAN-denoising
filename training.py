@@ -5,7 +5,7 @@ from utils import *
 import numpy as np
 from tqdm import tqdm
 from loss import generator_loss, discriminator_loss, cycle_consistency_loss
-from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES_END, VAL_IMAGES_END, TEST_IMAGES_END, TRAIN_IMAGES_START, VAL_IMAGES_START, TEST_IMAGES_START
+from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES_END, VAL_IMAGES_END, TEST_IMAGES_END, TRAIN_IMAGES_START, VAL_IMAGES_START, TEST_IMAGES_START, LAMBDA_CYCLE
 
 
 
@@ -20,7 +20,8 @@ def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
         data = (image_batch, noisy_batch)
         test_loss = model.test_step(data)
         test_losses.append(test_loss)
-    save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images, epoch, "validaiton",output_dir="test_images")
+        if batch % 100 == 0:
+            save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images, epoch, str(batch),output_dir="test_images")
     avg_G_loss = np.mean([loss['G_loss'] for loss in test_losses])
     avg_F_loss = np.mean([loss['F_loss'] for loss in test_losses])
     avg_DX_loss = np.mean([loss['D_X_loss'] for loss in test_losses])
@@ -37,6 +38,7 @@ def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
         "avg_DX_loss": avg_DX_loss,
         "avg_DY_loss": avg_DY_loss
     }
+
 
 
 def run(resume_train=False,start_epoch=0):
@@ -68,7 +70,7 @@ def run(resume_train=False,start_epoch=0):
         d_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5)
 
 
-        cycle_gan_model = CycleGAN(gen_G, gen_F, disc_X, disc_Y, lambda_cycle=10)
+        cycle_gan_model = CycleGAN(gen_G, gen_F, disc_X, disc_Y, lambda_cycle=LAMBDA_CYCLE)
         cycle_gan_model.compile(
             g_optimizer=g_optimizer,
             d_optimizer=d_optimizer,
@@ -130,7 +132,35 @@ def run(resume_train=False,start_epoch=0):
         print("\n\n===================== Test LOSS =====================\n")
         test_model(cycle_gan_model, test_dataset, num_images=5, plot=False,epoch="final_test")
         print("\n\n===================== Training complete =====================\n\n")
+
+        
+
+def load_model_and_only_test(epoch=1):
+    gen_G, gen_F, disc_X, disc_Y = load_models(epoch=epoch)
+    g_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
+    d_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5)
+
+    cycle_gan_model = CycleGAN(
+        generator_G=gen_G, 
+        generator_F=gen_F, 
+        discriminator_X=disc_X, 
+        discriminator_Y=disc_Y, 
+        lambda_cycle=LAMBDA_CYCLE
+    )
     
+    cycle_gan_model.compile(
+        g_optimizer=g_optimizer,
+        d_optimizer=d_optimizer,
+        gen_loss_fn=generator_loss,
+        disc_loss_fn=discriminator_loss,
+        cycle_loss_fn=cycle_consistency_loss
+    )
+    
+    _, _, test_images = load_mnist(TRAIN_IMAGES_START, TRAIN_IMAGES_END, VAL_IMAGES_START, VAL_IMAGES_END, TEST_IMAGES_START, TEST_IMAGES_END)
+    noisy_test_images = add_salt_pepper_noise(test_images)
+    test_dataset = tf.data.Dataset.from_tensor_slices((test_images, noisy_test_images)).batch(BATCH_SIZE)
+    
+    print("\n\n===================== Test =====================\n")
+    test_model(cycle_gan_model, test_dataset, num_images=5, plot=False, epoch="final_test")
+    print("\n\n===================== Testing complete =====================\n\n")
 
-
-   
