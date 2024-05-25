@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers, Model # type: ignore
 import tensorflow_addons as tfa
+from params import NUM_RESNET_BLOCKS
 
 def resnet_block(input_layer, filters, kernel_size=3):
     initializer = tf.random_normal_initializer(0., 0.02)
@@ -30,8 +31,7 @@ def make_generator_model():
     x = layers.ReLU()(x)
 
     # ResNet blocks
-    num_resnet_blocks = 9  # Increased from 6 to 9
-    for _ in range(num_resnet_blocks):
+    for _ in range(NUM_RESNET_BLOCKS):
         x = resnet_block(x, 256)
 
     # Upsampling

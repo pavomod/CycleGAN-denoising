@@ -124,8 +124,7 @@ def run(resume_train=False,start_epoch=0):
             val_f_losses.append(avg_val_loss["avg_F_loss"])
             val_dx_losses.append(avg_val_loss["avg_DX_loss"])
             val_dy_losses.append(avg_val_loss["avg_DY_loss"])
-            print("\n\n")
-            print("===================== saving models for epoch: "+ str(epoch+1)+" =====================\n")
+            print("\n===================== saving models for epoch: "+ str(epoch+1)+" =====================\n")
             save_models(cycle_gan_model.generator_G, cycle_gan_model.generator_F, cycle_gan_model.discriminator_X, cycle_gan_model.discriminator_Y, epoch)
             print(f"===================== Epoch {epoch+1} complete =====================\n\n")
 
