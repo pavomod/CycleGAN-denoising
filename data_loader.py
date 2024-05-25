@@ -42,10 +42,14 @@ def save_models(generator_G, generator_F, discriminator_X, discriminator_Y, epoc
     print(f"Models saved to {save_dir}\n\n")
 
 def load_models(epoch=1):
-    load_dir = f'models/epoch_{epoch}'
-    generator_G = load_model(os.path.join(load_dir, 'generator_G.h5'))
-    generator_F = load_model(os.path.join(load_dir, 'generator_F.h5'))
-    discriminator_X = load_model(os.path.join(load_dir, 'discriminator_X.h5'))
-    discriminator_Y = load_model(os.path.join(load_dir, 'discriminator_Y.h5'))
+    try:
+        load_dir = f'models/epoch_{epoch}'
+        generator_G = load_model(os.path.join(load_dir, 'generator_G.h5'))
+        generator_F = load_model(os.path.join(load_dir, 'generator_F.h5'))
+        discriminator_X = load_model(os.path.join(load_dir, 'discriminator_X.h5'))
+        discriminator_Y = load_model(os.path.join(load_dir, 'discriminator_Y.h5'))
+    except Exception as e:
+        print(f"Error loading models: {e}")
+        exit(1)
     print(f"Models loaded from {load_dir}\n\n")
     return generator_G, generator_F, discriminator_X, discriminator_Y

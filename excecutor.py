@@ -8,8 +8,11 @@ while True:
         if switch == "load":
             epoch = int(input("Enter the epoch number to load the model from: "))
             run(resume_train=True, start_epoch=epoch)
-        else:
+        elif switch == "scratch":
             run(resume_train=False)
+        else:
+            print("Invalid input. Please enter 'load' or 'scratch'\n")
+        
     elif switch == "test":
         epoch = int(input("Enter the epoch number to load the model from: "))
         load_model_and_only_test(epoch)
