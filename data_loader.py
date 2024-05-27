@@ -4,9 +4,9 @@ import os
 from tensorflow.keras.models import load_model # type: ignore
 from params import SALT, PEPPER
 
-def load_mnist(train_size=1000, val_size=1000, test_size=1000):
+def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
+    np.random.seed(seed)  
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-
 
     x = np.concatenate((x_train, x_test), axis=0)
     y = np.concatenate((y_train, y_test), axis=0)
