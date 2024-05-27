@@ -11,3 +11,6 @@ def generator_loss(generated):
 
 def cycle_consistency_loss(real_image, cycled_image):
     return tf.reduce_mean(tf.abs(real_image - cycled_image))
+
+def identity_loss(real_image, same_image):
+    return tf.reduce_mean(tf.abs(real_image - same_image))

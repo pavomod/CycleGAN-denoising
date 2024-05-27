@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import os
 from tensorflow.keras.models import load_model # type: ignore
-from params import SALT, PEPPER
+from params import SALT, PEPPER, ROBOTICS_TRAIN_PATH, ROBOTICS_VAL_PATH, ROBOTICS_TEST_PATH
 
 def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
     np.random.seed(seed)  
@@ -30,7 +30,27 @@ def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
     
     return train_x, val_x, test_x
 
-
+def load_robotics_data():
+    train_images = []
+    val_images = []
+    test_images = []
+    for i in range(1000):
+        train_images.append(tf.image.decode_png(tf.io.read_file(f"{ROBOTICS_TRAIN_PATH}{i}.png"), channels=1).numpy())
+        val_images.append(tf.image.decode_png(tf.io.read_file(f"{ROBOTICS_VAL_PATH}{i}.png"), channels=1).numpy())
+        test_images.append(tf.image.decode_png(tf.io.read_file(f"{ROBOTICS_TEST_PATH}{i}.png"), channels=1).numpy())
+    train_images = np.array(train_images)
+    val_images = np.array(val_images)
+    test_images = np.array(test_images)
+    
+    train_images = train_images.astype('float32') / 255.0
+    val_images = val_images.astype('float32') / 255.0
+    test_images = test_images.astype('float32') / 255.0
+    
+    train_images = (train_images - 0.5) * 2
+    val_images = (val_images - 0.5) * 2
+    test_images = (test_images - 0.5) * 2
+    
+    return train_images, val_images, test_images
 
 def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
     batch_size, height, width, channels = images.shape
@@ -43,11 +63,7 @@ def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
 def remove_pixel(images, remove_prob=0.6):
     batch_size, height, width, channels = images.shape
     noise = np.random.rand(batch_size, height, width, channels)
-    
-    # Crea una maschera dei pixel bianchi
-    white_pixel_mask = (images >= 0.99)  # Usare >= 0.99 per tolleranza numerica
-    
-    # Applica la rimozione dei pixel bianchi basata sulla probabilità
+    white_pixel_mask = (images >= 0.99)  
     removal_mask = (noise < remove_prob) & white_pixel_mask
     noisy_images = np.where(removal_mask, -1.0, images)
     

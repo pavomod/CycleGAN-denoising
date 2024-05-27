@@ -1,11 +1,11 @@
 import tensorflow as tf
 from models import make_generator_model, make_discriminator_model, CycleGAN
-from data_loader import load_mnist, add_salt_pepper_noise,save_models,load_models,remove_pixel
+from data_loader import load_mnist,load_robotics_data, add_salt_pepper_noise,save_models,load_models,remove_pixel
 from utils import *
 import numpy as np
 from tqdm import tqdm
-from loss import generator_loss, discriminator_loss, cycle_consistency_loss
-from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES, LAMBDA_CYCLE
+from loss import generator_loss, discriminator_loss, cycle_consistency_loss, identity_loss
+from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES, LAMBDA_CYCLE, LEARNING_RATE_GEN, LEARNING_RATE_DISC,BETA
 
 
 
@@ -41,7 +41,7 @@ def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
 
 
 
-def run(resume_train=False,start_epoch=0):
+def run(resume_train=False,start_epoch=0,robotics_task=False):
     physical_devices = tf.config.list_physical_devices('GPU')
     print("GPUs:", physical_devices)
     device = '/gpu:0' if tf.config.list_physical_devices('GPU') else '/cpu:0'
@@ -76,14 +76,20 @@ def run(resume_train=False,start_epoch=0):
             d_optimizer=d_optimizer,
             gen_loss_fn=generator_loss,
             disc_loss_fn=discriminator_loss,
-            cycle_loss_fn=cycle_consistency_loss
+            cycle_loss_fn=cycle_consistency_loss,
+            identity_loss_fn=identity_loss
         )
 
-
-        train_images, val_images, test_images = load_mnist(TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES)
-        noisy_train_images = add_salt_pepper_noise(train_images)
-        noisy_val_images = add_salt_pepper_noise(val_images)
-        noisy_test_images = add_salt_pepper_noise(test_images)
+        if robotics_task==False:
+            train_images, val_images, test_images = load_mnist(TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES)
+            noisy_train_images = add_salt_pepper_noise(train_images)
+            noisy_val_images = add_salt_pepper_noise(val_images)
+            noisy_test_images = add_salt_pepper_noise(test_images)
+        else:
+            train_images, val_images, test_images = load_robotics_data()
+            noisy_train_images = remove_pixel(train_images)
+            noisy_val_images = remove_pixel(val_images)
+            noisy_test_images = remove_pixel(test_images)
 
         train_dataset = tf.data.Dataset.from_tensor_slices((train_images, noisy_train_images)).batch(BATCH_SIZE)
         val_dataset = tf.data.Dataset.from_tensor_slices((val_images, noisy_val_images)).batch(BATCH_SIZE)
@@ -136,8 +142,8 @@ def run(resume_train=False,start_epoch=0):
 
 def load_model_and_only_test(epoch=1):
     gen_G, gen_F, disc_X, disc_Y = load_models(epoch=epoch)
-    g_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
-    d_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5)
+    g_optimizer = tf.keras.optimizers.Adam(LEARNING_RATE_GEN, beta_1=BETA)
+    d_optimizer = tf.keras.optimizers.Adam(LEARNING_RATE_DISC, beta_1=BETA)
 
     cycle_gan_model = CycleGAN(
         generator_G=gen_G, 
@@ -152,7 +158,8 @@ def load_model_and_only_test(epoch=1):
         d_optimizer=d_optimizer,
         gen_loss_fn=generator_loss,
         disc_loss_fn=discriminator_loss,
-        cycle_loss_fn=cycle_consistency_loss
+        cycle_loss_fn=cycle_consistency_loss,
+        identity_loss_fn=identity_loss
     )
     
     _, _, test_images = load_mnist(TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES)

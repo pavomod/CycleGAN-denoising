@@ -53,8 +53,10 @@ def make_discriminator_model():
     model = tf.keras.Sequential([
         layers.Conv2D(32, (4, 4), strides=(2, 2), padding='same', input_shape=(28, 28, 1)),
         layers.LeakyReLU(alpha=0.2),
+        layers.Dropout(0.3),
         layers.Conv2D(64, (4, 4), strides=(2, 2), padding='same'),
         layers.LeakyReLU(alpha=0.2),
+        layers.Dropout(0.3),
         layers.Flatten(),
         layers.Dense(1)
     ])
@@ -89,13 +91,14 @@ class CycleGAN(Model):
 
         return fake_y, cycled_x, fake_x, cycled_y, disc_real_x, disc_fake_x, disc_real_y, disc_fake_y
     
-    def compile(self, g_optimizer, d_optimizer, gen_loss_fn, disc_loss_fn, cycle_loss_fn):
+    def compile(self, g_optimizer, d_optimizer, gen_loss_fn, disc_loss_fn, cycle_loss_fn,identity_loss_fn):
         super(CycleGAN, self).compile()
         self.g_optimizer = g_optimizer
         self.d_optimizer = d_optimizer
         self.gen_loss_fn = gen_loss_fn
         self.disc_loss_fn = disc_loss_fn
         self.cycle_loss_fn = cycle_loss_fn
+        self.identity_loss = identity_loss_fn
 
     def train_step(self, data):
         real_x, real_y = data
@@ -107,6 +110,11 @@ class CycleGAN(Model):
             fake_x = self.generator_F(real_y, training=True)
             cycled_y = self.generator_G(fake_x, training=True)
 
+            #perdita di identità
+            same_y = self.generator_G(real_y, training=True)
+            same_x = self.generator_F(real_x, training=True)
+            identity_loss_G = self.identity_loss(real_y, same_y)
+            identity_loss_F = self.identity_loss(real_x, same_x)
             # Discriminator outputs
             disc_real_x = self.discriminator_X(real_x, training=True)
             disc_fake_x = self.discriminator_X(fake_x, training=True)
@@ -114,8 +122,8 @@ class CycleGAN(Model):
             disc_fake_y = self.discriminator_Y(fake_y, training=True)
 
             # Calculate the generator and discriminator losses
-            gen_g_loss = self.gen_loss_fn(disc_fake_y)
-            gen_f_loss = self.gen_loss_fn(disc_fake_x)
+            gen_g_loss = self.gen_loss_fn(disc_fake_y) + identity_loss_G * self.lambda_cycle
+            gen_f_loss = self.gen_loss_fn(disc_fake_x) + identity_loss_F * self.lambda_cycle
             total_cycle_loss = self.cycle_loss_fn(real_x, cycled_x) + self.cycle_loss_fn(real_y, cycled_y)
             total_gen_g_loss = gen_g_loss + self.lambda_cycle * total_cycle_loss
             total_gen_f_loss = gen_f_loss + self.lambda_cycle * total_cycle_loss
