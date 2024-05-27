@@ -13,8 +13,8 @@ def resnet_block(input_layer, filters, kernel_size=KERNEL_SIZE_RESNET):
     x = tfa.layers.InstanceNormalization()(x)
     return layers.add([x, input_layer])
 
-def make_generator_model():
-    inputs = layers.Input(shape=(28, 28, 1))
+def make_generator_model(shape=(28, 28, 1)):
+    inputs = layers.Input(shape=shape)
     
     # Initial Convolution block
     x = layers.Conv2D(64, (7, 7), strides=1, padding='same')(inputs)
@@ -49,9 +49,10 @@ def make_generator_model():
     return Model(inputs=inputs, outputs=x)
 
 
-def make_discriminator_model():
+
+def make_discriminator_model(shape=(28, 28, 1)):
     model = tf.keras.Sequential([
-        layers.Conv2D(32, (4, 4), strides=(2, 2), padding='same', input_shape=(28, 28, 1)),
+        layers.Conv2D(32, (4, 4), strides=(2, 2), padding='same', input_shape=shape),
         layers.LeakyReLU(alpha=0.2),
         layers.Dropout(0.3),
         layers.Conv2D(64, (4, 4), strides=(2, 2), padding='same'),
@@ -103,12 +104,21 @@ class CycleGAN(Model):
     def train_step(self, data):
         real_x, real_y = data
 
+        # print real_x.shape, real_y.shape
+
         with tf.GradientTape(persistent=True) as tape:
             # Forward pass through the network
             fake_y = self.generator_G(real_x, training=True)
+            print(f"Dimensione fake_y: {fake_y.shape}")
+
             cycled_x = self.generator_F(fake_y, training=True)
+            print(f"Dimensione cycled_x: {cycled_x.shape}")
+
             fake_x = self.generator_F(real_y, training=True)
+            print(f"Dimensione fake_x: {fake_x.shape}")
+
             cycled_y = self.generator_G(fake_x, training=True)
+            print(f"Dimensione cycled_y: {cycled_y.shape}")
 
             #perdita di identità
             same_y = self.generator_G(real_y, training=True)

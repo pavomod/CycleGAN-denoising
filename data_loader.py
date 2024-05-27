@@ -3,6 +3,8 @@ import numpy as np
 import os
 from tensorflow.keras.models import load_model # type: ignore
 from params import SALT, PEPPER, ROBOTICS_TRAIN_PATH, ROBOTICS_VAL_PATH, ROBOTICS_TEST_PATH
+import tqdm
+import matplotlib.pyplot as plt
 
 def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
     np.random.seed(seed)  
@@ -30,18 +32,52 @@ def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
     
     return train_x, val_x, test_x
 
-def load_robotics_data():
+def load_robotics_data(target_shape=(369, 496, 1), max_train_images=1000):
     train_images = []
     val_images = []
     test_images = []
-    for i in range(1000):
-        train_images.append(tf.image.decode_png(tf.io.read_file(f"{ROBOTICS_TRAIN_PATH}{i}.png"), channels=1).numpy())
-        val_images.append(tf.image.decode_png(tf.io.read_file(f"{ROBOTICS_VAL_PATH}{i}.png"), channels=1).numpy())
-        test_images.append(tf.image.decode_png(tf.io.read_file(f"{ROBOTICS_TEST_PATH}{i}.png"), channels=1).numpy())
+    
+    def load_and_resize_image(file_path):
+        img = tf.keras.preprocessing.image.load_img(file_path, color_mode='grayscale')
+        img = tf.keras.preprocessing.image.img_to_array(img)
+        img = tf.image.resize(img, target_shape[:2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        # Verifica la dimensione dell'immagine dopo il ridimensionamento
+        if img.shape != target_shape:
+            print(f"Dimensione errata per {file_path}: {img.shape}, attesa: {target_shape}")
+        return img
+    
+    for i, filename in enumerate(tqdm.tqdm(os.listdir(ROBOTICS_TRAIN_PATH))):
+        if i >= max_train_images:
+            break
+        if filename.endswith(".png"):
+            try:
+                img = load_and_resize_image(os.path.join(ROBOTICS_TRAIN_PATH, filename))
+                train_images.append(img)
+            except Exception as e:
+                print(f"Errore nel caricamento dell'immagine {filename}: {e}")
+    
+    for filename in tqdm.tqdm(os.listdir(ROBOTICS_VAL_PATH)):
+        if filename.endswith(".png"):
+            try:
+                img = load_and_resize_image(os.path.join(ROBOTICS_VAL_PATH, filename))
+                val_images.append(img)
+            except Exception as e:
+                print(f"Errore nel caricamento dell'immagine {filename}: {e}")
+    
+    for filename in tqdm.tqdm(os.listdir(ROBOTICS_TEST_PATH)):
+        if filename.endswith(".png"):
+            try:
+                img = load_and_resize_image(os.path.join(ROBOTICS_TEST_PATH, filename))
+                test_images.append(img)
+            except Exception as e:
+                print(f"Errore nel caricamento dell'immagine {filename}: {e}")
+    
     train_images = np.array(train_images)
     val_images = np.array(val_images)
     test_images = np.array(test_images)
-    
+
+
+
     train_images = train_images.astype('float32') / 255.0
     val_images = val_images.astype('float32') / 255.0
     test_images = test_images.astype('float32') / 255.0
@@ -52,6 +88,7 @@ def load_robotics_data():
     
     return train_images, val_images, test_images
 
+
 def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
     batch_size, height, width, channels = images.shape
     noise = np.random.rand(batch_size, height, width, channels)
@@ -60,7 +97,7 @@ def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
     return noisy_images.astype('float32')
 
 
-def remove_pixel(images, remove_prob=0.6):
+def remove_pixel(images, remove_prob=0.2):
     batch_size, height, width, channels = images.shape
     noise = np.random.rand(batch_size, height, width, channels)
     white_pixel_mask = (images >= 0.99)  

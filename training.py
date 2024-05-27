@@ -41,7 +41,7 @@ def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
 
 
 
-def run(resume_train=False,start_epoch=0,robotics_task=False):
+def run(resume_train=False,start_epoch=0,robotics_task=False,shape=(28,28,1)):
     physical_devices = tf.config.list_physical_devices('GPU')
     print("GPUs:", physical_devices)
     device = '/gpu:0' if tf.config.list_physical_devices('GPU') else '/cpu:0'
@@ -56,15 +56,15 @@ def run(resume_train=False,start_epoch=0,robotics_task=False):
                 print(f"Error loading models: {e}")
                 print(" ===================== Starting training from scratch. ===================== ")
                 start_epoch = 0
-                gen_G = make_generator_model()
-                gen_F = make_generator_model()
-                disc_X = make_discriminator_model()
-                disc_Y = make_discriminator_model()
+                gen_G = make_generator_model(shape)
+                gen_F = make_generator_model(shape)
+                disc_X = make_discriminator_model(shape)
+                disc_Y = make_discriminator_model(shape)
         else:
-            gen_G = make_generator_model()
-            gen_F = make_generator_model()
-            disc_X = make_discriminator_model()
-            disc_Y = make_discriminator_model()
+            gen_G = make_generator_model(shape)
+            gen_F = make_generator_model(shape)
+            disc_X = make_discriminator_model(shape)
+            disc_Y = make_discriminator_model(shape)
 
         g_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
         d_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5)
@@ -104,6 +104,10 @@ def run(resume_train=False,start_epoch=0,robotics_task=False):
         val_f_losses = []
         val_dx_losses = []
         val_dy_losses = []
+
+        # dimensione train
+        print("Train images shape: ",train_images.shape)
+        print("Noisy Train images shape: ",noisy_train_images.shape)
 
         print("===================== Training =====================\n")
         for epoch in range(start_epoch,EPOCHS):  
