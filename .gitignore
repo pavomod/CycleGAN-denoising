@@ -2,5 +2,7 @@ train_images
 models
 test_images
 Consegna.png
-saved_models
+saved_models_minst
+saved_models_robotics
+robotics_dataset
 __pycache__
