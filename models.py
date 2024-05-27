@@ -1,9 +1,9 @@
 import tensorflow as tf
 from tensorflow.keras import layers, Model # type: ignore
 import tensorflow_addons as tfa
-from params import NUM_RESNET_BLOCKS
+from params import NUM_RESNET_BLOCKS, KERNEL_SIZE_RESNET
 
-def resnet_block(input_layer, filters, kernel_size=3):
+def resnet_block(input_layer, filters, kernel_size=KERNEL_SIZE_RESNET):
     initializer = tf.random_normal_initializer(0., 0.02)
     x = layers.Conv2D(filters, kernel_size, padding='same', kernel_initializer=initializer, use_bias=False)(input_layer)
     x = tfa.layers.InstanceNormalization()(x)
