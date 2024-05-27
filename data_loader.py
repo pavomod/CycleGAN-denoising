@@ -4,16 +4,33 @@ import os
 from tensorflow.keras.models import load_model # type: ignore
 from params import SALT, PEPPER
 
-def load_mnist(train_start=0, train_end=1000, val_start=1001, val_end=1100, test_start=1101, test_end=1200):
-    (x, _), (_, _) = tf.keras.datasets.mnist.load_data()
+def load_mnist(train_size=1000, val_size=1000, test_size=1000):
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+
+    x = np.concatenate((x_train, x_test), axis=0)
+    y = np.concatenate((y_train, y_test), axis=0)
+    
     x = np.expand_dims(x, axis=-1)
     x = x.astype('float32') / 255.0
     x = (x - 0.5) * 2
-    train_x = x[train_start:train_end]
-    val_x = x[val_start:val_end]
-    test_x = x[test_start:test_end]
+
+    def get_balanced_set(size):
+        indices = []
+        for digit in range(10):
+            digit_indices = np.where(y == digit)[0]
+            np.random.shuffle(digit_indices)
+            indices.extend(digit_indices[:size // 10])
+        np.random.shuffle(indices)
+        return x[indices]
+
+    train_x = get_balanced_set(train_size)
+    val_x = get_balanced_set(val_size)
+    test_x = get_balanced_set(test_size)
     
     return train_x, val_x, test_x
+
+
 
 def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
     batch_size, height, width, channels = images.shape
@@ -23,14 +40,18 @@ def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
     return noisy_images.astype('float32')
 
 
-#Test
-def add_gaussian_noise(images, mean=0, std=0.3):
-    gaussian_noise = np.random.normal(mean, std, images.shape)
-    noisy_images = images + gaussian_noise
-    noisy_images = np.clip(noisy_images, 0, 1)  
+def remove_pixel(images, remove_prob=0.6):
+    batch_size, height, width, channels = images.shape
+    noise = np.random.rand(batch_size, height, width, channels)
+    
+    # Crea una maschera dei pixel bianchi
+    white_pixel_mask = (images >= 0.99)  # Usare >= 0.99 per tolleranza numerica
+    
+    # Applica la rimozione dei pixel bianchi basata sulla probabilità
+    removal_mask = (noise < remove_prob) & white_pixel_mask
+    noisy_images = np.where(removal_mask, -1.0, images)
+    
     return noisy_images.astype('float32')
-
-
 
 def save_models(generator_G, generator_F, discriminator_X, discriminator_Y, epoch):
     save_dir = f'models/epoch_{epoch+1}'

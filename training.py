@@ -1,11 +1,11 @@
 import tensorflow as tf
 from models import make_generator_model, make_discriminator_model, CycleGAN
-from data_loader import load_mnist, add_salt_pepper_noise,save_models,load_models
+from data_loader import load_mnist, add_salt_pepper_noise,save_models,load_models,remove_pixel
 from utils import *
 import numpy as np
 from tqdm import tqdm
 from loss import generator_loss, discriminator_loss, cycle_consistency_loss
-from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES_END, VAL_IMAGES_END, TEST_IMAGES_END, TRAIN_IMAGES_START, VAL_IMAGES_START, TEST_IMAGES_START, LAMBDA_CYCLE
+from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES, LAMBDA_CYCLE
 
 
 
@@ -80,7 +80,7 @@ def run(resume_train=False,start_epoch=0):
         )
 
 
-        train_images, val_images, test_images = load_mnist(TRAIN_IMAGES_START, TRAIN_IMAGES_END, VAL_IMAGES_START, VAL_IMAGES_END, TEST_IMAGES_START, TEST_IMAGES_END)
+        train_images, val_images, test_images = load_mnist(TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES)
         noisy_train_images = add_salt_pepper_noise(train_images)
         noisy_val_images = add_salt_pepper_noise(val_images)
         noisy_test_images = add_salt_pepper_noise(test_images)
@@ -155,7 +155,7 @@ def load_model_and_only_test(epoch=1):
         cycle_loss_fn=cycle_consistency_loss
     )
     
-    _, _, test_images = load_mnist(TRAIN_IMAGES_START, TRAIN_IMAGES_END, VAL_IMAGES_START, VAL_IMAGES_END, TEST_IMAGES_START, TEST_IMAGES_END)
+    _, _, test_images = load_mnist(TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES)
     noisy_test_images = add_salt_pepper_noise(test_images)
     test_dataset = tf.data.Dataset.from_tensor_slices((test_images, noisy_test_images)).batch(BATCH_SIZE)
     

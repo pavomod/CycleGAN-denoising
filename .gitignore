@@ -2,4 +2,5 @@ train_images
 models
 test_images
 Consegna.png
+saved_models
 __pycache__
