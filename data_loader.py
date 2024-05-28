@@ -4,7 +4,6 @@ import os
 from tensorflow.keras.models import load_model # type: ignore
 from params import SALT, PEPPER, ROBOTICS_TRAIN_PATH, ROBOTICS_VAL_PATH, ROBOTICS_TEST_PATH
 import tqdm
-import matplotlib.pyplot as plt
 
 def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
     np.random.seed(seed)  
@@ -32,7 +31,7 @@ def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
     
     return train_x, val_x, test_x
 
-def load_robotics_data(target_shape=(369, 496, 1), max_train_images=1000):
+def load_robotics_data(target_shape=(128, 128, 1), max_train_images=1000):
     train_images = []
     val_images = []
     test_images = []
@@ -40,7 +39,7 @@ def load_robotics_data(target_shape=(369, 496, 1), max_train_images=1000):
     def load_and_resize_image(file_path):
         img = tf.keras.preprocessing.image.load_img(file_path, color_mode='grayscale')
         img = tf.keras.preprocessing.image.img_to_array(img)
-        img = tf.image.resize(img, target_shape[:2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        img = tf.image.resize(img, target_shape[:2], method=tf.image.ResizeMethod.BILINEAR, antialias=True)
         # Verifica la dimensione dell'immagine dopo il ridimensionamento
         if img.shape != target_shape:
             print(f"Dimensione errata per {file_path}: {img.shape}, attesa: {target_shape}")
@@ -76,8 +75,6 @@ def load_robotics_data(target_shape=(369, 496, 1), max_train_images=1000):
     val_images = np.array(val_images)
     test_images = np.array(test_images)
 
-
-
     train_images = train_images.astype('float32') / 255.0
     val_images = val_images.astype('float32') / 255.0
     test_images = test_images.astype('float32') / 255.0
@@ -97,14 +94,27 @@ def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
     return noisy_images.astype('float32')
 
 
-def remove_pixel(images, remove_prob=0.2):
-    batch_size, height, width, channels = images.shape
-    noise = np.random.rand(batch_size, height, width, channels)
-    white_pixel_mask = (images >= 0.99)  
-    removal_mask = (noise < remove_prob) & white_pixel_mask
-    noisy_images = np.where(removal_mask, -1.0, images)
-    
-    return noisy_images.astype('float32')
+def remove_pixel(images, dash_length=40, space_length=10):
+    processed_images = []
+
+    for image in images:
+        # Convertire l'immagine da [-1, 1] a [0, 255]
+        img_uint8 = ((image + 1) * 127.5).astype(np.uint8).copy()
+
+        # Dimensioni dell'immagine
+        height = img_uint8.shape[0]
+
+        # Disegna linee orizzontali nere
+        for y in range(0, height, dash_length + space_length):
+            end_y = min(y + space_length, height)
+            img_uint8[y:end_y, :] = 0  # Imposta i pixel a nero nella banda orizzontale
+
+        # Convertire l'immagine da [0, 255] a [-1, 1]
+        processed_image = (img_uint8 / 127.5) - 1
+        processed_images.append(processed_image)
+
+
+    return np.array(processed_images).astype('float32')
 
 def save_models(generator_G, generator_F, discriminator_X, discriminator_Y, epoch):
     save_dir = f'models/epoch_{epoch+1}'

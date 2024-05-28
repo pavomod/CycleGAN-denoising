@@ -5,9 +5,7 @@ from utils import *
 import numpy as np
 from tqdm import tqdm
 from loss import generator_loss, discriminator_loss, cycle_consistency_loss, identity_loss
-from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES, LAMBDA_CYCLE, LEARNING_RATE_GEN, LEARNING_RATE_DISC,BETA
-
-
+from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES, LAMBDA_CYCLE, LEARNING_RATE_GEN, LEARNING_RATE_DISC,BETA, SAVE_EVERY_TRAIN, SAVE_EVERY_TEST
 
 def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
     test_losses = []
@@ -20,7 +18,7 @@ def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
         data = (image_batch, noisy_batch)
         test_loss = model.test_step(data)
         test_losses.append(test_loss)
-        if batch % 100 == 0:
+        if batch % SAVE_EVERY_TEST == 0:
             save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images, epoch, str(batch),output_dir="test_images")
     avg_G_loss = np.mean([loss['G_loss'] for loss in test_losses])
     avg_F_loss = np.mean([loss['F_loss'] for loss in test_losses])
@@ -48,7 +46,7 @@ def run(resume_train=False,start_epoch=0,robotics_task=False,shape=(28,28,1)):
     print('Using device:', device)
 
     with tf.device(device):
-        if resume_train:
+        if resume_train and robotics_task==False:
             try:
                 gen_G, gen_F, disc_X, disc_Y = load_models(start_epoch)
                 print(f"===================== Resuming training from epoch {start_epoch+1} ===================== ")
@@ -65,7 +63,7 @@ def run(resume_train=False,start_epoch=0,robotics_task=False,shape=(28,28,1)):
             gen_F = make_generator_model(shape)
             disc_X = make_discriminator_model(shape)
             disc_Y = make_discriminator_model(shape)
-
+        
         g_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
         d_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5)
 
@@ -91,9 +89,15 @@ def run(resume_train=False,start_epoch=0,robotics_task=False,shape=(28,28,1)):
             noisy_val_images = remove_pixel(val_images)
             noisy_test_images = remove_pixel(test_images)
 
+
         train_dataset = tf.data.Dataset.from_tensor_slices((train_images, noisy_train_images)).batch(BATCH_SIZE)
         val_dataset = tf.data.Dataset.from_tensor_slices((val_images, noisy_val_images)).batch(BATCH_SIZE)
         test_dataset = tf.data.Dataset.from_tensor_slices((test_images, noisy_test_images)).batch(BATCH_SIZE)
+
+        #PLOT THE FIRST 5 IMAGES OF TRAIN, VAL AND TEST
+        plot_images(train_images[:5], noisy_train_images[:5], train_images[:5], num_images=5)
+        plot_images(val_images[:5], noisy_val_images[:5], val_images[:5], num_images=5)
+        plot_images(test_images[:5], noisy_test_images[:5], test_images[:5], num_images=5)
 
         train_g_losses = []
         train_f_losses = []
@@ -120,7 +124,7 @@ def run(resume_train=False,start_epoch=0,robotics_task=False,shape=(28,28,1)):
                 train_dx_losses.append(train_loss["D_X_loss"].numpy())
                 train_dy_losses.append(train_loss["D_Y_loss"].numpy())
 
-                if batch % 100 == 0:  # Save images every 100 batches
+                if batch % SAVE_EVERY_TRAIN == 0:  # Save images every 100 batches
                     generated_images = cycle_gan_model.generator_G(noisy_batch, training=False)
                     save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images.numpy(), epoch, batch,output_dir="train_images")
             

@@ -109,16 +109,9 @@ class CycleGAN(Model):
         with tf.GradientTape(persistent=True) as tape:
             # Forward pass through the network
             fake_y = self.generator_G(real_x, training=True)
-            print(f"Dimensione fake_y: {fake_y.shape}")
-
             cycled_x = self.generator_F(fake_y, training=True)
-            print(f"Dimensione cycled_x: {cycled_x.shape}")
-
             fake_x = self.generator_F(real_y, training=True)
-            print(f"Dimensione fake_x: {fake_x.shape}")
-
             cycled_y = self.generator_G(fake_x, training=True)
-            print(f"Dimensione cycled_y: {cycled_y.shape}")
 
             #perdita di identità
             same_y = self.generator_G(real_y, training=True)
