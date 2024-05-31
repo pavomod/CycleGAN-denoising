@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import os
 from tensorflow.keras.models import load_model # type: ignore
-from params import SALT, PEPPER, ROBOTICS_TRAIN_PATH, ROBOTICS_VAL_PATH, ROBOTICS_TEST_PATH
+from params import SALT, PEPPER, ROBOTICS_TRAIN_PATH, ROBOTICS_VAL_PATH, ROBOTICS_TEST_PATH, DASH_LENGTH, SPACE_LENGTH
 import tqdm
 
 def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
@@ -94,7 +94,7 @@ def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
     return noisy_images.astype('float32')
 
 
-def remove_pixel(images, dash_length=40, space_length=10):
+def remove_pixel(images, dash_length=DASH_LENGTH, space_length=SPACE_LENGTH):
     processed_images = []
 
     for image in images:
