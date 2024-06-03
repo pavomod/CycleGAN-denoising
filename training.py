@@ -5,7 +5,7 @@ from utils import *
 import numpy as np
 from tqdm import tqdm
 from loss import generator_loss, discriminator_loss, cycle_consistency_loss, identity_loss
-from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES, LAMBDA_CYCLE, LEARNING_RATE_GEN, LEARNING_RATE_DISC,BETA, SAVE_EVERY_TRAIN, SAVE_EVERY_TEST
+from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES, LAMBDA_CYCLE, LEARNING_RATE_GEN, LEARNING_RATE_DISC,BETA, SAVE_EVERY_TRAIN, SAVE_EVERY_TEST, VALIDATION_EVERY
 
 def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
     test_losses = []
@@ -127,17 +127,18 @@ def run(resume_train=False,start_epoch=0,robotics_task=False,shape=(28,28,1)):
                 if batch % SAVE_EVERY_TRAIN == 0:  # Save images every 100 batches
                     generated_images = cycle_gan_model.generator_G(noisy_batch, training=False)
                     save_images(image_batch.numpy(), noisy_batch.numpy(), generated_images.numpy(), epoch, batch,output_dir="train_images")
-            
+                if batch % VALIDATION_EVERY == 0 and batch != 0:
+                    print("===================== Validation  LOSS =====================\n")
+                    avg_val_loss = test_model(cycle_gan_model, val_dataset, num_images=5, plot=False,epoch=str(epoch)+"_"+str(batch))
+                    val_g_losses.append(avg_val_loss["avg_G_loss"])
+                    val_f_losses.append(avg_val_loss["avg_F_loss"])
+                    val_dx_losses.append(avg_val_loss["avg_DX_loss"])
+                    val_dy_losses.append(avg_val_loss["avg_DY_loss"])              
             train_g_losses.append(train_loss["G_loss"].numpy())
             train_f_losses.append(train_loss["F_loss"].numpy())
             train_dx_losses.append(train_loss["D_X_loss"].numpy())
             train_dy_losses.append(train_loss["D_Y_loss"].numpy())
-            print("===================== Validation  LOSS =====================\n")
-            avg_val_loss = test_model(cycle_gan_model, val_dataset, num_images=5, plot=False,epoch=str(epoch))
-            val_g_losses.append(avg_val_loss["avg_G_loss"])
-            val_f_losses.append(avg_val_loss["avg_F_loss"])
-            val_dx_losses.append(avg_val_loss["avg_DX_loss"])
-            val_dy_losses.append(avg_val_loss["avg_DY_loss"])
+
             print("\n===================== saving models for epoch: "+ str(epoch+1)+" =====================\n")
             save_models(cycle_gan_model.generator_G, cycle_gan_model.generator_F, cycle_gan_model.discriminator_X, cycle_gan_model.discriminator_Y, epoch)
             print(f"===================== Epoch {epoch+1} complete =====================\n\n")

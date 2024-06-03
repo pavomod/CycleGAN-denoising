@@ -31,7 +31,7 @@ def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
     
     return train_x, val_x, test_x
 
-def load_robotics_data(target_shape=(128, 128, 1), max_train_images=7000):
+def load_robotics_data(target_shape=(128, 128, 1), max_train_images=5000):
     train_images = []
     val_images = []
     test_images = []
