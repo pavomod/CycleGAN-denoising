@@ -37,6 +37,7 @@ The hyperparameters used for the two tasks are:
 - Number of epochs: 2
 - Cycle lambda: 10
 **Trajectory Parameters**:
+  
 - Batch size: 1
 - Learning rate: 1E-4 (Generators), 1E-4 (Discriminators)
 - Number of epochs: 2
