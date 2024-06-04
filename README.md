@@ -34,13 +34,13 @@ The hyperparameters used for the two tasks are:
 **MNIST Parameters**:
 - Batch size: 1
 - Learning rate: 2E-4 (Generators), 1E-4 (Discriminators)
-- Number of epochs: 60
-
+- Number of epochs: 2
+- Cycle lambda: 10
 **Trajectory Parameters**:
 - Batch size: 1
 - Learning rate: 1E-4 (Generators), 1E-4 (Discriminators)
-- Number of epochs: 10
-
+- Number of epochs: 2
+- Cycle lambda: 10
 ## Results and Analysis
 The initial results for the MNIST dataset were not satisfactory due to using a large batch size. With a batch size of 1, the model achieved remarkable results after just one epoch.
 
