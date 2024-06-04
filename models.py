@@ -4,6 +4,19 @@ import tensorflow_addons as tfa
 from params import NUM_RESNET_BLOCKS, KERNEL_SIZE_RESNET
 
 def resnet_block(input_layer, filters, kernel_size=KERNEL_SIZE_RESNET):
+    '''
+    Creates a ResNet block with two convolutional layers, instance normalization, and ReLU activation.
+    The block adds the input to the output to form a residual connection, facilitating gradient flow 
+    during training.
+
+    Parameters:
+        input_layer (tensor): Input tensor to the ResNet block.
+        filters (int): Number of filters for the convolutional layers.
+        kernel_size (int or tuple): Size of the convolution kernels.
+
+    Returns:
+        tensor: Output tensor after applying the ResNet block.
+    '''
     initializer = tf.random_normal_initializer(0., 0.02)
     x = layers.Conv2D(filters, kernel_size, padding='same', kernel_initializer=initializer, use_bias=False)(input_layer)
     x = tfa.layers.InstanceNormalization()(x)
@@ -14,6 +27,17 @@ def resnet_block(input_layer, filters, kernel_size=KERNEL_SIZE_RESNET):
     return layers.add([x, input_layer])
 
 def make_generator_model(shape=(28, 28, 1)):
+    '''
+    Creates a generator model using convolutional layers, instance normalization, and ReLU activation. 
+    The model architecture includes an initial convolution block, downsampling layers, multiple ResNet 
+    blocks, and upsampling layers, culminating in a single-channel output with a tanh activation.
+
+    Parameters:
+        shape (tuple): Shape of the input images (height, width, channels).
+
+    Returns:
+        tf.keras.Model: The generator model.
+    '''
     inputs = layers.Input(shape=shape)
     
     # Initial Convolution block
@@ -51,6 +75,17 @@ def make_generator_model(shape=(28, 28, 1)):
 
 
 def make_discriminator_model(shape=(28, 28, 1)):
+    '''
+    Creates a discriminator model using convolutional layers, LeakyReLU activation, and dropout. 
+    The model architecture includes multiple convolutional layers for feature extraction, followed by 
+    a dense layer for binary classification.
+
+    Parameters:
+        shape (tuple): Shape of the input images (height, width, channels).
+
+    Returns:
+        tf.keras.Model: The discriminator model.
+    '''
     model = tf.keras.Sequential([
         layers.Conv2D(32, (4, 4), strides=(2, 2), padding='same', input_shape=shape),
         layers.LeakyReLU(alpha=0.2),
@@ -67,14 +102,40 @@ def make_discriminator_model(shape=(28, 28, 1)):
 
 class CycleGAN(Model):
     def __init__(self, generator_G, generator_F, discriminator_X, discriminator_Y, lambda_cycle=10):
+        '''
+        Initializes the CycleGAN model with given generators and discriminators. The CycleGAN consists of 
+        two generators (G and F) and two discriminators (for domains X and Y). The cycle consistency loss 
+        weight is also set.
+
+        Parameters:
+            generator_G (tf.keras.Model): Generator model for transforming X to Y.
+            generator_F (tf.keras.Model): Generator model for transforming Y to X.
+            discriminator_X (tf.keras.Model): Discriminator model for domain X.
+            discriminator_Y (tf.keras.Model): Discriminator model for domain Y.
+            lambda_cycle (int): Weight for the cycle consistency loss.
+        '''
         super(CycleGAN, self).__init__()
-        self.generator_G = generator_G  # Generator G: X -> Y
-        self.generator_F = generator_F  # Generator F: Y -> X
-        self.discriminator_X = discriminator_X  # Discriminator for X
-        self.discriminator_Y = discriminator_Y  # Discriminator for Y
-        self.lambda_cycle = lambda_cycle  # Lambda for cycle consistency loss
+        self.generator_G = generator_G  
+        self.generator_F = generator_F 
+        self.discriminator_X = discriminator_X  
+        self.discriminator_Y = discriminator_Y  
+        self.lambda_cycle = lambda_cycle 
 
     def call(self, inputs, training=False):
+        '''
+        Executes the forward pass of the CycleGAN model. It generates fake images, performs cycle consistency,
+        and computes discriminator outputs for real and fake images. In training mode, it returns additional 
+        outputs needed for computing losses.
+
+        Parameters:
+            inputs (tuple): Tuple containing real images from domain X and domain Y (real_x, real_y).
+            training (bool): Boolean flag indicating whether the model is in training mode.
+
+        Returns:
+            tuple: In inference mode, returns fake_y, cycled_x, fake_x, cycled_y. 
+                In training mode, returns additional discriminator outputs: 
+                fake_y, cycled_x, fake_x, cycled_y, disc_real_x, disc_fake_x, disc_real_y, disc_fake_y.
+        '''
         real_x, real_y = inputs
 
         fake_y = self.generator_G(real_x, training=training)
@@ -93,6 +154,18 @@ class CycleGAN(Model):
         return fake_y, cycled_x, fake_x, cycled_y, disc_real_x, disc_fake_x, disc_real_y, disc_fake_y
     
     def compile(self, g_optimizer, d_optimizer, gen_loss_fn, disc_loss_fn, cycle_loss_fn,identity_loss_fn):
+        '''
+        Configures the CycleGAN model for training by setting the optimizers and loss functions. This method 
+        is called before training the model.
+
+        Parameters:
+            g_optimizer (tf.keras.optimizers.Optimizer): Optimizer for the generator models.
+            d_optimizer (tf.keras.optimizers.Optimizer): Optimizer for the discriminator models.
+            gen_loss_fn (function): Loss function for the generators.
+            disc_loss_fn (function): Loss function for the discriminators.
+            cycle_loss_fn (function): Loss function for the cycle consistency.
+            identity_loss_fn (function): Loss function for the identity mapping.
+        '''
         super(CycleGAN, self).compile()
         self.g_optimizer = g_optimizer
         self.d_optimizer = d_optimizer
@@ -102,6 +175,17 @@ class CycleGAN(Model):
         self.identity_loss = identity_loss_fn
 
     def train_step(self, data):
+        '''
+        Performs a single training step for the CycleGAN model. This includes forward passes through the generators 
+        and discriminators, calculating the losses, computing the gradients, and applying the gradients to update 
+        the model weights.
+
+        Parameters:
+            data (tuple): A tuple containing real images from domain X and domain Y (real_x, real_y).
+
+        Returns:
+            dict: A dictionary containing the losses for the generators and discriminators.
+        '''
         real_x, real_y = data
 
         # print real_x.shape, real_y.shape
@@ -153,6 +237,16 @@ class CycleGAN(Model):
         }
     
     def test_step(self, data):
+        '''
+        Performs a single test step for the CycleGAN model. This includes forward passes through the generators 
+        and discriminators, and calculating the losses without updating the model weights.
+
+        Parameters:
+            data (tuple): A tuple containing real images from domain X and domain Y (real_x, real_y).
+
+        Returns:
+            dict: A dictionary containing the losses for the generators and discriminators.
+        '''
         real_x, real_y = data
 
         # Forward pass through the network

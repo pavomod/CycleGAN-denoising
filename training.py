@@ -8,6 +8,20 @@ from loss import generator_loss, discriminator_loss, cycle_consistency_loss, ide
 from params import EPOCHS, BATCH_SIZE, TRAIN_IMAGES, VAL_IMAGES, TEST_IMAGES, LAMBDA_CYCLE, LEARNING_RATE_GEN, LEARNING_RATE_DISC,BETA, SAVE_EVERY_TRAIN, SAVE_EVERY_TEST, VALIDATION_EVERY
 
 def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
+    '''
+    Tests the model on a given test dataset, calculates the average losses, and optionally plots and saves images. 
+    Uses a progress bar to show testing progress.
+
+    Parameters:
+        model (CycleGAN): The CycleGAN model to be tested.
+        test_dataset (tf.data.Dataset): The dataset to test the model on.
+        num_images (int): Number of images to plot from each batch.
+        plot (bool): Whether to plot images during testing.
+        epoch (int): The current epoch number, used for saving images.
+
+    Returns:
+        dict: A dictionary containing the average losses for the generators and discriminators.
+    '''
     test_losses = []
     #use tqdm to show progress bar
     for batch, (image_batch, noisy_batch) in enumerate(tqdm(test_dataset, desc=f"Epoch {epoch}")):
@@ -40,6 +54,20 @@ def test_model(model, test_dataset, num_images=5, plot=True,epoch=0):
 
 
 def run(resume_train=False,start_epoch=0,robotics_task=False,shape=(28,28,1)):
+    '''
+    Sets up and runs the training loop for the CycleGAN model, optionally resuming from a specified epoch.
+    Handles the creation or loading of models, optimizers, and datasets. Performs training, validation, 
+    and testing while saving model weights and images at specified intervals.
+
+    Parameters:
+        resume_train (bool): Whether to resume training from a saved checkpoint.
+        start_epoch (int): The epoch to start/resume training from.
+        robotics_task (bool): Flag indicating if the task is related to robotics (affects data loading).
+        shape (tuple): The shape of the input images.
+
+    Returns:
+        None
+    '''
     physical_devices = tf.config.list_physical_devices('GPU')
     print("GPUs:", physical_devices)
     device = '/gpu:0' if tf.config.list_physical_devices('GPU') else '/cpu:0'
@@ -150,6 +178,17 @@ def run(resume_train=False,start_epoch=0,robotics_task=False,shape=(28,28,1)):
         
 
 def load_model_and_only_test(epoch=1):
+    '''
+    Loads a CycleGAN model from a specified epoch checkpoint and performs testing on the MNIST test dataset.
+    Compiles the model with predefined optimizers and loss functions, applies salt and pepper noise to the 
+    test images, and evaluates the model's performance.
+
+    Parameters:
+        epoch (int): The epoch number to load the model from.
+
+    Returns:
+        None
+    '''
     gen_G, gen_F, disc_X, disc_Y = load_models(epoch=epoch)
     g_optimizer = tf.keras.optimizers.Adam(LEARNING_RATE_GEN, beta_1=BETA)
     d_optimizer = tf.keras.optimizers.Adam(LEARNING_RATE_DISC, beta_1=BETA)

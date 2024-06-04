@@ -6,6 +6,20 @@ from params import SALT, PEPPER, ROBOTICS_TRAIN_PATH, ROBOTICS_VAL_PATH, ROBOTIC
 import tqdm
 
 def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
+    '''
+    Loads the MNIST dataset and returns balanced subsets for training, validation, and testing. 
+    Each subset contains an equal number of samples from each digit class. The sizes of the subsets can be 
+    specified, and a random seed is used for reproducibility.
+
+    Parameters:
+        train_size (int): Number of samples in the training set.
+        val_size (int): Number of samples in the validation set.
+        test_size (int): Number of samples in the test set.
+        seed (int): Random seed for reproducibility.
+
+    Returns:
+        tuple: Three numpy arrays containing the training, validation, and test sets.
+    '''
     np.random.seed(seed)  
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
@@ -32,6 +46,18 @@ def load_mnist(train_size=1000, val_size=1000, test_size=1000, seed=42):
     return train_x, val_x, test_x
 
 def load_robotics_data(target_shape=(128, 128, 1), max_train_images=5000):
+    '''
+    Loads robotics image data from specified directories and resizes the images to a target shape. 
+    It returns three sets of images: training, validation, and testing. Each image is converted to grayscale, resized, 
+    normalized to the range [-1, 1], and stored in numpy arrays.
+
+    Parameters:
+        target_shape (tuple): The desired shape of the output images (height, width, channels).
+        max_train_images (int): Maximum number of training images to load.
+
+    Returns:
+        tuple: Three numpy arrays containing the training, validation, and test sets.
+    '''
     train_images = []
     val_images = []
     test_images = []
@@ -87,6 +113,19 @@ def load_robotics_data(target_shape=(128, 128, 1), max_train_images=5000):
 
 
 def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
+    '''
+    Adds salt and pepper noise to a batch of images. Salt noise sets some pixels to the maximum value (1.0), 
+    and pepper noise sets some pixels to the minimum value (0.0). The probabilities for salt and pepper noise 
+    can be specified.
+
+    Parameters:
+        images (numpy array): Batch of images to which noise will be added.
+        salt_prob (float): Probability of a pixel being set to 1.0 (salt noise).
+        pepper_prob (float): Probability of a pixel being set to 0.0 (pepper noise).
+
+    Returns:
+        numpy array: Batch of images with added salt and pepper noise.
+    '''
     batch_size, height, width, channels = images.shape
     noise = np.random.rand(batch_size, height, width, channels)
     noisy_images = np.where(noise < salt_prob, 1.0, images)
@@ -95,6 +134,19 @@ def add_salt_pepper_noise(images, salt_prob=SALT, pepper_prob=PEPPER):
 
 
 def remove_pixel(images, dash_length=DASH_LENGTH, space_length=SPACE_LENGTH):
+    '''
+    Applies a dashed line effect to a batch of images by setting horizontal bands of pixels to black. 
+    The length of the dashed lines and the spaces between them can be specified. Images are converted 
+    to [0, 255] range for processing and then back to [-1, 1] range.
+
+    Parameters:
+        images (numpy array): Batch of images to process.
+        dash_length (int): Length of the space between dashed lines.
+        space_length (int): Length of the black dashed lines.
+
+    Returns:
+        numpy array: Batch of images with dashed line effect applied.
+    '''
     processed_images = []
 
     for image in images:
@@ -117,6 +169,17 @@ def remove_pixel(images, dash_length=DASH_LENGTH, space_length=SPACE_LENGTH):
     return np.array(processed_images).astype('float32')
 
 def save_models(generator_G, generator_F, discriminator_X, discriminator_Y, epoch):
+    '''
+    Saves the models (generators and discriminators) to a specified directory named after the current epoch. 
+    Each model is saved in HDF5 format (.h5).
+
+    Parameters:
+        generator_G (tf.keras.Model): The generator G model to save.
+        generator_F (tf.keras.Model): The generator F model to save.
+        discriminator_X (tf.keras.Model): The discriminator X model to save.
+        discriminator_Y (tf.keras.Model): The discriminator Y model to save.
+        epoch (int): The current epoch number used for naming the save directory.
+    '''
     save_dir = f'models/epoch_{epoch+1}'
     os.makedirs(save_dir, exist_ok=True)
     generator_G.save(os.path.join(save_dir, 'generator_G.h5'))
@@ -126,6 +189,16 @@ def save_models(generator_G, generator_F, discriminator_X, discriminator_Y, epoc
     print(f"Models saved to {save_dir}\n\n")
 
 def load_models(epoch=1):
+    '''
+    Loads the models (generators and discriminators) from a specified directory named after the epoch. 
+    Each model is loaded from HDF5 format (.h5).
+
+    Parameters:
+        epoch (int): The epoch number used for naming the load directory.
+
+    Returns:
+        tuple: Loaded generator G, generator F, discriminator X, and discriminator Y models.
+    '''
     try:
         load_dir = f'models/epoch_{epoch}'
         generator_G = load_model(os.path.join(load_dir, 'generator_G.h5'))
